@@ -1,7 +1,13 @@
 require 'net/imap'
 require 'pry'
 require 'nokogiri'
+require 'sequel'
+
+
 module Unsubber
+  DB = Sequel.connect('sqlite://unsubber.db')
+
+  class Email < Sequel::Model; end
 
   def self.login(login_info)
     user, pass = login_info
@@ -29,12 +35,13 @@ module Unsubber
         if site
           site_key = site.gsub(/\.\w+$/, '').gsub(/\./, '_').to_sym
           puts "key: #{site_key} uid: #{mail}"
-          if @record[site_key]
-            @record[site_key][:count] += 1
-            @record[site_key][:uid] << mail
-          else
-            @record[site_key] = { :site => site, :count => 1, :uid => [mail] }
-          end
+          Email.insert(host_dns: site, u_id: mail)
+          # if @record[site_key]
+          #   @record[site_key][:count] += 1
+          #   @record[site_key][:uid] << mail
+          # else
+          #   @record[site_key] = { :site => site, :count => 1, :uid => [mail] }
+          # end
         end
       end       
     end
@@ -44,7 +51,7 @@ module Unsubber
     end
 
     def read_email
-      @access.search(["NOT", "NEW"])[-100..-1]
+      @access.search(["NOT", "NEW"])[-500..-1]
     end
 
     def envelope(mail)
